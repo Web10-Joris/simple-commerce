@@ -32,15 +32,23 @@ class CartItemController extends BaseActionController
 
         $cart = $this->handleCustomerInformation($request, $cart);
 
+        // Check if the product is already in the line items and store its quantity
+        foreach ($items as $item) {
+            if ($item->product->id === $product->id) {
+                $existingQuantity = $item->quantity;
+                break;
+            }
+        }
+        
         // Ensure there's enough stock to fulfill the customer's quantity
         if ($product->purchasableType() === ProductType::Product) {
-            if (is_int($product->stock()) && $request->quantity > $product->stock()) {
+            if (is_int($product->stock()) && ($request->quantity + $existingQuantity) > $product->stock()) {
                 return $this->withErrors($request, __("There's not enough stock to fulfil the quantity you selected. Please try again later."));
             }
         } elseif ($product->purchasableType() === ProductType::Variant) {
             $variant = $product->variant($request->get('variant'));
 
-            if ($variant !== null && is_int($variant->stock()) && $request->quantity > $variant->stock()) {
+            if ($variant !== null && is_int($variant->stock()) && ($request->quantity + $existingQuantity) > $variant->stock()) {
                 return $this->withErrors($request, __("There's not enough stock to fulfil the quantity you selected. Please try again later."));
             }
         }
